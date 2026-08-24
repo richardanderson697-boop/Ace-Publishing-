@@ -224,15 +224,27 @@ private fun AuthorBookCard(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top
       ) {
-        Image(
-          painter = painterResource(id = book.coverDrawableRes),
-          contentDescription = book.title,
-          contentScale = ContentScale.Crop,
-          modifier = Modifier
-            .width(80.dp)
-            .height(110.dp)
-            .clip(RoundedCornerShape(10.dp))
-        )
+        if (book.localCoverUri != null) {
+          coil.compose.AsyncImage(
+            model = book.localCoverUri,
+            contentDescription = book.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+              .width(80.dp)
+              .height(110.dp)
+              .clip(RoundedCornerShape(10.dp))
+          )
+        } else {
+          Image(
+            painter = painterResource(id = book.coverDrawableRes),
+            contentDescription = book.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+              .width(80.dp)
+              .height(110.dp)
+              .clip(RoundedCornerShape(10.dp))
+          )
+        }
 
         Spacer(modifier = Modifier.width(14.dp))
 
@@ -256,15 +268,20 @@ private fun AuthorBookCard(
               )
             }
 
-            if (!isDraft) {
-              Box(
-                modifier = Modifier
-                  .clip(RoundedCornerShape(6.dp))
-                  .background(AceEmeraldBg)
-                  .padding(horizontal = 6.dp, vertical = 2.dp)
-              ) {
-                Text("Live on Store", color = AceEmerald, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-              }
+            // Ingestion Source & Royalty Badge
+            val isEcosystem = book.ingestionSource == com.example.data.models.IngestionSource.WRITE_SOUND_ECOSYSTEM
+            Box(
+              modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(if (isEcosystem) AceIndigoDark.copy(alpha = 0.6f) else AceGold.copy(alpha = 0.2f))
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+              Text(
+                text = if (isEcosystem) "Write-Sound (85%)" else "ZIP Intake (75%)",
+                color = if (isEcosystem) AceTextPrimary else AceGold,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold
+              )
             }
           }
 
@@ -277,6 +294,15 @@ private fun AuthorBookCard(
             color = AceGold,
             fontSize = 11.sp
           )
+          if (book.zipFileName != null) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+              text = "Archive: ${book.zipFileName} (${if (book.extractedSegmentCount > 0) "${book.extractedSegmentCount} voice segments" else "Master Stitched"})",
+              color = AceTextMuted,
+              fontSize = 9.sp,
+              fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+          }
           Spacer(modifier = Modifier.height(4.dp))
           if (!isDraft) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -293,6 +319,9 @@ private fun AuthorBookCard(
       Spacer(modifier = Modifier.height(10.dp))
 
       // Financials & Actions
+      val royaltyPct = book.royaltyRatePercent
+      val netPayout = book.price * (royaltyPct / 100.0)
+
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -306,7 +335,7 @@ private fun AuthorBookCard(
             fontSize = 13.sp
           )
           Text(
-            text = "Creator Net (85%): $${"%.2f".format(book.price * 0.85)}",
+            text = "Creator Net (${royaltyPct.toInt()}%): $${"%.2f".format(netPayout)}",
             color = AceEmerald,
             fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp

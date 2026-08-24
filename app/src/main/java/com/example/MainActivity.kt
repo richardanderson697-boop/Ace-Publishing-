@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
 import com.example.data.models.UserRole
 import com.example.ui.components.*
 import com.example.ui.screens.admin.AdminWorkspaceScreen
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
     enableEdgeToEdge()
     setContent {
       AceTheme {
+        val context = LocalContext.current
         val aceViewModel: AceViewModel = viewModel()
         val uiState by aceViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -153,13 +155,29 @@ class MainActivity : ComponentActivity() {
               }
             }
 
-            // Write-Sound Studio Import & Publish Dialog
+            // Write-Sound Studio Import & Standalone ZIP Ingestion Dialog
             if (uiState.showImportFromWriteSound) {
               WriteSoundImportDialog(
                 projects = uiState.writeSoundProjects,
+                isProcessing = uiState.isZipProcessingInProgress,
+                processingLogs = uiState.zipProcessingLogs,
                 onDismiss = { aceViewModel.openImportFromWriteSound(false) },
-                onPublish = { projId, title, price, desc, relDate, format, status ->
+                onPublishWriteSound = { projId, title, price, desc, relDate, format, status ->
                   aceViewModel.publishProjectFromWriteSound(projId, title, price, desc, relDate, format, status)
+                },
+                onPublishStandaloneZip = { zipUri, coverUri, title, price, desc, relDate, format, status, zipName ->
+                  aceViewModel.processAndPublishStandaloneZip(
+                    context = context,
+                    zipUri = zipUri,
+                    coverUri = coverUri,
+                    title = title,
+                    price = price,
+                    description = desc,
+                    releaseDate = relDate,
+                    format = format,
+                    publicationStatus = status,
+                    zipFileName = zipName
+                  )
                 }
               )
             }

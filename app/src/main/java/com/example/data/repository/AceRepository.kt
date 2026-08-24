@@ -656,7 +656,57 @@ class AceRepository {
       genres = listOf("Sci-Fi Thriller", "Audiobook"),
       isPublished = publicationStatus == PublicationStatus.PUBLISHED_LIVE,
       publicationStatus = publicationStatus,
+      ingestionSource = IngestionSource.WRITE_SOUND_ECOSYSTEM,
+      royaltyRatePercent = 85.0,
       releaseDate = releaseDate.ifBlank { if (publicationStatus == PublicationStatus.PRIVATE_DRAFT) "Private Draft" else "Immediate Release" }
+    )
+
+    _products.update { listOf(newProduct) + it }
+    return newProduct
+  }
+
+  fun publishFromStandaloneZip(
+    authorId: String,
+    title: String,
+    price: Double,
+    description: String,
+    releaseDate: String,
+    format: ProductFormat,
+    publicationStatus: PublicationStatus,
+    zipFileName: String,
+    segmentCount: Int,
+    durationMinutes: Int,
+    localAudioPath: String?,
+    localCoverUri: String?,
+    coverDrawableRes: Int = R.drawable.cover_machine2_1787574231599
+  ): BookProduct {
+    val author = _workspaces.value[authorId]
+    val authorName = author?.storeName ?: "Richard Anderson"
+
+    val newProduct = BookProduct(
+      id = "book_zip_${System.currentTimeMillis()}",
+      authorId = authorId,
+      authorName = authorName,
+      title = title.ifBlank { "Standalone Master Release" },
+      subtitle = "Standalone ZIP Intake (75% Creator Net)",
+      description = description.ifBlank { "Mastered audiobook with embedded jacket cover and stitched voice segments." },
+      price = price,
+      coverDrawableRes = coverDrawableRes,
+      format = format,
+      chapterCount = if (segmentCount > 0) (segmentCount / 4).coerceAtLeast(1) else 8,
+      audioDurationMinutes = durationMinutes,
+      rating = 5.0,
+      reviewCount = 0,
+      genres = listOf("Standalone Ingestion", "Spatial Master"),
+      isPublished = publicationStatus == PublicationStatus.PUBLISHED_LIVE,
+      publicationStatus = publicationStatus,
+      ingestionSource = IngestionSource.STANDALONE_ZIP_IMPORT,
+      royaltyRatePercent = 75.0,
+      localAudioPath = localAudioPath,
+      localCoverUri = localCoverUri,
+      zipFileName = zipFileName,
+      extractedSegmentCount = segmentCount,
+      releaseDate = releaseDate.ifBlank { if (publicationStatus == PublicationStatus.PRIVATE_DRAFT) "Private Draft (Testing)" else "Immediate Release" }
     )
 
     _products.update { listOf(newProduct) + it }
@@ -939,8 +989,9 @@ class AceRepository {
 
     val newOrders = items.map { item ->
       val gross = item.product.price * item.quantity
-      val authorCut = gross * 0.85
-      val platformFee = gross * 0.15
+      val royaltyPercent = item.product.royaltyRatePercent
+      val authorCut = gross * (royaltyPercent / 100.0)
+      val platformFee = gross * ((100.0 - royaltyPercent) / 100.0)
 
       OperationalOrder(
         orderId = "ACE-${(8922..9999).random()}",
@@ -951,8 +1002,10 @@ class AceRepository {
         productTitle = item.product.title,
         format = item.product.format,
         grossAmount = gross,
+        royaltyRatePercent = royaltyPercent,
         authorCut85 = authorCut,
         platformFee15 = platformFee,
+        ingestionSource = item.product.ingestionSource,
         status = OrderStatus.COMPLETED,
         attributionSource = if (attributionPostId != null) AttributionSource.FAN_POST else AttributionSource.DIRECT_LINK,
         attributionPostId = attributionPostId,

@@ -39,6 +39,9 @@ data class AceUiState(
   val isApiHandshakeInProgress: Boolean = false,
   val apiHandshakeLogs: List<String> = emptyList(),
   val apiPipelineSteps: List<com.example.data.repository.AceRepository.IngestionPipelineStep> = emptyList(),
+  val isZipProcessingInProgress: Boolean = false,
+  val zipProcessingLogs: List<String> = emptyList(),
+  val lastZipReport: com.example.data.util.ZipProcessingReport? = null,
   val snackbarMessage: String? = null
 )
 
@@ -278,6 +281,81 @@ class AceViewModel(private val repository: AceRepository = AceRepository()) : Vi
 
   fun deleteProductDraft(productId: String) {
     repository.deleteProductDraft(productId)
+  }
+
+  fun processAndPublishStandaloneZip(
+    context: android.content.Context,
+    zipUri: android.net.Uri?,
+    coverUri: android.net.Uri?,
+    title: String,
+    price: Double,
+    description: String,
+    releaseDate: String,
+    format: ProductFormat,
+    publicationStatus: PublicationStatus,
+    zipFileName: String
+  ) {
+    viewModelScope.launch {
+      _uiState.update {
+        it.copy(
+          isZipProcessingInProgress = true,
+          zipProcessingLogs = listOf("Initiating standalone ZIP & photo intake pipeline..."),
+          lastZipReport = null
+        )
+      }
+
+      val packager = com.example.data.util.ZipAudioPackager(context)
+      val authorId = _uiState.value.currentAuthorId
+      val author = _uiState.value.authorWorkspace?.storeName ?: "Richard Anderson"
+
+      val report = packager.processZipAndCreateMaster(
+        zipUri = zipUri,
+        coverUri = coverUri,
+        bookTitle = title,
+        authorName = author,
+        customZipName = zipFileName
+      )
+
+      if (report.success) {
+        val createdProduct = repository.publishFromStandaloneZip(
+          authorId = authorId,
+          title = title,
+          price = price,
+          description = description,
+          releaseDate = releaseDate,
+          format = format,
+          publicationStatus = publicationStatus,
+          zipFileName = report.zipFileName,
+          segmentCount = report.totalSegmentsFound,
+          durationMinutes = report.totalEstimatedDurationMinutes,
+          localAudioPath = report.extractedAudioPath,
+          localCoverUri = report.embeddedCoverPath
+        )
+
+        _uiState.update {
+          it.copy(
+            isZipProcessingInProgress = false,
+            zipProcessingLogs = report.stepLogs,
+            lastZipReport = report,
+            showImportFromWriteSound = false,
+            snackbarMessage = "Successfully created draft for '${createdProduct.title}' (75% net creator rate)"
+          )
+        }
+      } else {
+        _uiState.update {
+          it.copy(
+            isZipProcessingInProgress = false,
+            zipProcessingLogs = report.stepLogs,
+            lastZipReport = report,
+            snackbarMessage = "ZIP processing error: ${report.errorMessage}"
+          )
+        }
+      }
+    }
+  }
+
+  fun clearZipProcessingLogs() {
+    _uiState.update { it.copy(zipProcessingLogs = emptyList(), isZipProcessingInProgress = false) }
   }
 
   fun runApiHandshakeSimulation(

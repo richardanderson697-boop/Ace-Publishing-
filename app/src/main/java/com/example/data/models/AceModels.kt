@@ -39,6 +39,11 @@ enum class AttributionSource(val displayName: String) {
   DIRECT_LINK("Direct Author Link")
 }
 
+enum class IngestionSource(val displayName: String, val defaultRoyaltyPercent: Double, val feeExplanation: String) {
+  WRITE_SOUND_ECOSYSTEM("Write-Sound Ecosystem", 85.0, "15% platform fee • 0% intake fee"),
+  STANDALONE_ZIP_IMPORT("Standalone ZIP Intake", 75.0, "15% platform fee + 10% transcoding/ingestion fee")
+}
+
 enum class ProductFormat(val displayName: String) {
   AUDIOBOOK("Mastered Audiobook"),
   EBOOK("EPUB / Manuscript"),
@@ -82,6 +87,12 @@ data class BookProduct(
   val genres: List<String>,
   val isPublished: Boolean = true,
   val publicationStatus: PublicationStatus = PublicationStatus.PUBLISHED_LIVE,
+  val ingestionSource: IngestionSource = IngestionSource.WRITE_SOUND_ECOSYSTEM,
+  val royaltyRatePercent: Double = 85.0,
+  val localAudioPath: String? = null,
+  val localCoverUri: String? = null,
+  val zipFileName: String? = null,
+  val extractedSegmentCount: Int = 0,
   val releaseDate: String = "Aug 2026",
   val previewSampleTitle: String = "Sample Clip",
   val sampleText: String = ""
@@ -112,8 +123,10 @@ data class OperationalOrder(
   val productTitle: String,
   val format: ProductFormat,
   val grossAmount: Double,
+  val royaltyRatePercent: Double = 85.0,
   val authorCut85: Double,
   val platformFee15: Double,
+  val ingestionSource: IngestionSource = IngestionSource.WRITE_SOUND_ECOSYSTEM,
   val status: OrderStatus,
   val attributionSource: AttributionSource? = null,
   val attributionPostId: String? = null,

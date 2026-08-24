@@ -118,7 +118,7 @@ fun OperationalOrderCard(
           )
         }
 
-        // Financials: Gross & 85% Split
+        // Financials: Gross & Royalty Split
         Column(horizontalAlignment = Alignment.End) {
           Text(
             text = "$${"%.2f".format(order.grossAmount)} Gross",
@@ -127,13 +127,13 @@ fun OperationalOrderCard(
             fontSize = 13.sp
           )
           Text(
-            text = "Author 85%: $${"%.2f".format(order.authorCut85)}",
+            text = "Author ${order.royaltyRatePercent.toInt()}%: $${"%.2f".format(order.authorCut85)}",
             color = AceEmerald,
             fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp
           )
           Text(
-            text = "ACE Fee 15%: $${"%.2f".format(order.platformFee15)}",
+            text = if (order.royaltyRatePercent == 85.0) "ACE Fee 15%: $${"%.2f".format(order.platformFee15)}" else "ACE 15% + 10% Fee: $${"%.2f".format(order.platformFee15)}",
             color = AceTextMuted,
             fontSize = 10.sp
           )
