@@ -1,0 +1,6 @@
+{
+  "name": "ACE Publishing",
+  "description": "ACE Author & Creator Publishing Platform with Write-Sound Studio integration, operational orders, fan attribution, and sales analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
