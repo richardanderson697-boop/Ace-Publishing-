@@ -1,7 +1,9 @@
 package com.example.ui.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.audio.AudioPlayerManager
 import com.example.data.models.*
 import com.example.data.repository.AceRepository
 import kotlinx.coroutines.delay
@@ -70,10 +72,15 @@ enum class AdminTab(val label: String) {
   SYSTEM("System Health")
 }
 
-class AceViewModel(private val repository: AceRepository = AceRepository()) : ViewModel() {
+class AceViewModel(
+  application: Application,
+  private val repository: AceRepository = AceRepository()
+) : AndroidViewModel(application) {
 
   private val _uiState = MutableStateFlow(AceUiState())
   val uiState: StateFlow<AceUiState> = _uiState.asStateFlow()
+
+  private val audioPlayerManager = AudioPlayerManager(application.applicationContext)
 
   init {
     // Collect role
@@ -157,9 +164,9 @@ class AceViewModel(private val repository: AceRepository = AceRepository()) : Vi
       }
     }
 
-    // Collect playing audio sample
+    // Collect playing audio sample from real AudioPlayerManager
     viewModelScope.launch {
-      repository.currentlyPlayingSample.collect { sample ->
+      audioPlayerManager.playingSample.collect { sample ->
         _uiState.update { it.copy(currentlyPlayingSample = sample) }
       }
     }
@@ -177,21 +184,11 @@ class AceViewModel(private val repository: AceRepository = AceRepository()) : Vi
         _uiState.update { it.copy(followedAuthorIds = set) }
       }
     }
+  }
 
-    // Simulated audio playback progress loop
-    viewModelScope.launch {
-      while (true) {
-        delay(1000)
-        val current = repository.currentlyPlayingSample.value
-        if (current != null && current.isPlaying) {
-          if (current.currentPositionSeconds < current.durationSeconds) {
-            repository.seekAudio(current.currentPositionSeconds + 1)
-          } else {
-            repository.seekAudio(0)
-          }
-        }
-      }
-    }
+  override fun onCleared() {
+    super.onCleared()
+    audioPlayerManager.stop()
   }
 
   // --- Role & Navigation Control ---
@@ -510,27 +507,42 @@ class AceViewModel(private val repository: AceRepository = AceRepository()) : Vi
   }
 
   // --- Audio Sample Player Controls ---
-  fun playAudioSample(title: String, authorName: String, coverRes: Int, durationSeconds: Int, postId: String? = null) {
-    repository.playAudioSample(title, authorName, coverRes, durationSeconds)
+  fun playAudioSample(
+    title: String,
+    authorName: String,
+    coverRes: Int,
+    durationSeconds: Int = 180,
+    audioFilePath: String? = null,
+    localCoverUri: String? = null,
+    postId: String? = null
+  ) {
+    audioPlayerManager.play(
+      title = title,
+      authorName = authorName,
+      coverRes = coverRes,
+      durationSeconds = durationSeconds,
+      audioFilePath = audioFilePath,
+      localCoverUri = localCoverUri
+    )
     if (postId != null) {
       repository.recordPreviewPlay(postId)
     }
   }
 
   fun toggleAudioPlayPause() {
-    repository.togglePlayback()
+    audioPlayerManager.togglePlayPause()
   }
 
   fun togglePlayback() {
-    repository.togglePlayback()
+    audioPlayerManager.togglePlayPause()
   }
 
   fun seekAudio(sec: Int) {
-    repository.seekAudio(sec)
+    audioPlayerManager.seekTo(sec)
   }
 
   fun stopAudio() {
-    repository.stopAudio()
+    audioPlayerManager.stop()
   }
 
   // --- Author Settings ---

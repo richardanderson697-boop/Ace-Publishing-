@@ -155,7 +155,9 @@ fun AuthorBooksTab(
             title = book.title,
             authorName = book.authorName,
             coverRes = book.coverDrawableRes,
-            durationSeconds = book.audioDurationMinutes * 60
+            durationSeconds = book.audioDurationMinutes * 60,
+            audioFilePath = book.localAudioPath,
+            localCoverUri = book.localCoverUri
           )
         },
         onPublishLive = {

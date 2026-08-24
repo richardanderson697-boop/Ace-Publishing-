@@ -63,9 +63,13 @@ class AceRepository {
     val title: String,
     val authorName: String,
     val coverRes: Int,
-    val durationSeconds: Int,
+    val localCoverUri: String? = null,
+    val audioFilePath: String? = null,
+    val isRealAudioFile: Boolean = false,
+    val durationSeconds: Int = 180,
     val currentPositionSeconds: Int = 0,
-    val isPlaying: Boolean = true
+    val isPlaying: Boolean = true,
+    val fileSizeBytes: Long = 0L
   )
 
   init {
@@ -1047,14 +1051,29 @@ class AceRepository {
   }
 
   // --- Audio Sample Player ---
-  fun playAudioSample(title: String, authorName: String, coverRes: Int, durationSeconds: Int) {
+  fun playAudioSample(
+    title: String,
+    authorName: String,
+    coverRes: Int,
+    durationSeconds: Int = 180,
+    audioFilePath: String? = null,
+    localCoverUri: String? = null
+  ) {
+    val file = audioFilePath?.let { java.io.File(it) }
+    val isReal = file != null && file.exists() && file.length() > 0
+    val fileSize = file?.length() ?: 0L
+
     _currentlyPlayingSample.value = PlayingAudioSample(
       title = title,
       authorName = authorName,
       coverRes = coverRes,
-      durationSeconds = durationSeconds,
+      localCoverUri = localCoverUri,
+      audioFilePath = audioFilePath,
+      isRealAudioFile = isReal,
+      durationSeconds = if (durationSeconds > 0) durationSeconds else 180,
       currentPositionSeconds = 0,
-      isPlaying = true
+      isPlaying = true,
+      fileSizeBytes = fileSize
     )
   }
 
