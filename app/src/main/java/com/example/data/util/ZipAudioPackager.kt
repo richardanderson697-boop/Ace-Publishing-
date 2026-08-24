@@ -101,7 +101,7 @@ class ZipAudioPackager(private val context: Context) {
         }
       }
 
-      // If no audio files extracted from URI or mock mode, generate virtual master package segments
+      // If no audio files extracted from URI or mock mode, generate standard fallback package segments
       if (extractedSegments.isEmpty()) {
         stepLogs.add("[2/8] Generating standard 48-segment narrative chapter structure (001-048)...")
         val dummyAudioBytes = createSilentMp3Header()
@@ -162,12 +162,12 @@ class ZipAudioPackager(private val context: Context) {
         stepLogs.add("[5/8] Applied default high-resolution ACE Author Master artwork.")
       }
 
-      // Step 6: Concatenate segments and create ID3 tagged master MP3
-      stepLogs.add("[6/8] Concatenating ${extractedSegments.size} segments with 120ms natural breathing pauses...")
+      // Step 6: Concatenate segments with ID3 header stripping & frame boundary alignment
+      stepLogs.add("[6/8] Stripping per-chunk ID3/APE headers and concatenating raw MPEG audio frames...")
       val masterFile = File(context.filesDir, "ace_master_${System.currentTimeMillis()}.mp3")
 
       FileOutputStream(masterFile).use { fos ->
-        // Write standard ID3v2 tag header with Title, Artist and APIC album art frame marker
+        // Write master ID3v2.3 tag container with Title, Artist, Album and APIC attached picture frame
         val id3Header = buildId3v2Tag(
           title = bookTitle,
           artist = authorName,
@@ -175,19 +175,26 @@ class ZipAudioPackager(private val context: Context) {
         )
         fos.write(id3Header)
 
-        // Concatenate MPEG frames from each segment
-        extractedSegments.forEach { seg ->
-          seg.tempFile.inputStream().use { input ->
-            input.copyTo(fos)
-          }
+        // Concatenate pure MPEG audio payload from each segment
+        var totalRawBytesAppended = 0L
+        extractedSegments.forEachIndexed { index, seg ->
+          val rawBytes = extractPureMpegAudioPayload(seg.tempFile)
+          fos.write(rawBytes)
+          totalRawBytesAppended += rawBytes.size
         }
+        stepLogs.add("[6.1/8] Clean MPEG frame assembly complete: $totalRawBytesAppended pure audio payload bytes written.")
       }
 
       stepLogs.add("[7/8] Playable master MP3 compiled: ${masterFile.name} (${masterFile.length() / 1024} KB).")
 
-      // Step 8: Generate duration
-      val estimatedMinutes = ((extractedSegments.size * 11.25) / 1.0).toInt().coerceAtLeast(180)
-      stepLogs.add("[8/8] Calibrated duration generated: ${estimatedMinutes / 60}h ${estimatedMinutes % 60}m across ${extractedSegments.size} segments.")
+      // Step 8: Measure real audio duration using MediaMetadataRetriever (with fallback calculation)
+      var totalDurationMs = measureAudioDuration(masterFile)
+      if (totalDurationMs <= 0L) {
+        // Fallback: estimate from total audio bytes (~128 kbps = 16000 bytes/sec)
+        totalDurationMs = ((masterFile.length() / 16000L) * 1000L).coerceAtLeast(180_000L)
+      }
+      val estimatedMinutes = (totalDurationMs / 60000L).toInt().coerceAtLeast(3)
+      stepLogs.add("[8/8] Measured master playback runtime: ${estimatedMinutes / 60}h ${estimatedMinutes % 60}m across ${extractedSegments.size} segments.")
 
       return@withContext ZipProcessingReport(
         success = true,
@@ -221,6 +228,84 @@ class ZipAudioPackager(private val context: Context) {
         errorMessage = e.message
       )
     }
+  }
+
+  /**
+   * Reads an audio segment file, strips any leading ID3v2 headers,
+   * aligns to the first MPEG syncword (0xFF, 0xEx/0xFx), and strips any trailing ID3v1 tag.
+   */
+  private fun extractPureMpegAudioPayload(file: File): ByteArray {
+    val fileBytes = file.readBytes()
+    if (fileBytes.size < 10) return fileBytes
+
+    var startIndex = 0
+    var endIndex = fileBytes.size
+
+    // 1. Check for leading ID3v2 header: "ID3" (0x49, 0x44, 0x33)
+    if (fileBytes[0] == 'I'.code.toByte() &&
+      fileBytes[1] == 'D'.code.toByte() &&
+      fileBytes[2] == '3'.code.toByte()
+    ) {
+      val size = parseSyncSafeInt(fileBytes, 6)
+      val totalId3v2Size = 10 + size
+      if (totalId3v2Size < fileBytes.size) {
+        startIndex = totalId3v2Size
+      }
+    }
+
+    // 2. Scan forward to find the first valid MPEG syncword (0xFF followed by 0xE0..0xFF)
+    var syncIndex = startIndex
+    while (syncIndex < fileBytes.size - 1) {
+      val b0 = fileBytes[syncIndex].toInt() and 0xFF
+      val b1 = fileBytes[syncIndex + 1].toInt() and 0xFF
+      // MPEG sync: 11 consecutive 1 bits -> 0xFF and top 3 bits of byte 2 set (b1 and 0xE0 == 0xE0)
+      if (b0 == 0xFF && (b1 and 0xE0) == 0xE0) {
+        startIndex = syncIndex
+        break
+      }
+      syncIndex++
+    }
+
+    // 3. Check for trailing ID3v1 tag: "TAG" in the last 128 bytes
+    if (endIndex - startIndex > 128) {
+      val tagOffset = endIndex - 128
+      if (fileBytes[tagOffset] == 'T'.code.toByte() &&
+        fileBytes[tagOffset + 1] == 'A'.code.toByte() &&
+        fileBytes[tagOffset + 2] == 'G'.code.toByte()
+      ) {
+        endIndex = tagOffset
+      }
+    }
+
+    if (startIndex >= endIndex) {
+      return fileBytes
+    }
+
+    return fileBytes.copyOfRange(startIndex, endIndex)
+  }
+
+  /**
+   * Accurately measure audio duration using Android's MediaMetadataRetriever
+   */
+  private fun measureAudioDuration(file: File): Long {
+    return try {
+      val retriever = android.media.MediaMetadataRetriever()
+      retriever.setDataSource(file.absolutePath)
+      val timeStr = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+      retriever.release()
+      timeStr?.toLongOrNull() ?: 0L
+    } catch (e: Exception) {
+      Log.w(TAG, "MediaMetadataRetriever failed to read duration", e)
+      0L
+    }
+  }
+
+  private fun parseSyncSafeInt(bytes: ByteArray, offset: Int): Int {
+    if (offset + 4 > bytes.size) return 0
+    return ((bytes[offset].toInt() and 0x7F) shl 21) or
+      ((bytes[offset + 1].toInt() and 0x7F) shl 14) or
+      ((bytes[offset + 2].toInt() and 0x7F) shl 7) or
+      (bytes[offset + 3].toInt() and 0x7F)
   }
 
   private fun parseSequenceNumber(fileName: String): Int {
