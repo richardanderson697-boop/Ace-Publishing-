@@ -155,57 +155,64 @@ fun RoleSwitcherBar(
 
       // If Author Role, display isolated workspace selector banner
       if (currentRole == UserRole.AUTHOR) {
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         val currentWs = allWorkspaces[currentAuthorId]
 
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(AceIndigoDark.copy(alpha = 0.35f))
-            .border(1.dp, AceIndigoLight.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
-            .clickable { showAuthorDropdown = true }
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-            .testTag("author_workspace_dropdown_trigger"),
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-              imageVector = Icons.Default.Security,
-              contentDescription = null,
-              tint = AceIndigoLight,
-              modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Column {
-              Text(
-                text = "ISOLATED WORKSPACE: ${currentWs?.storeName ?: "Richard Anderson"}",
-                color = AceIndigoLight,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold
+        Box(modifier = Modifier.fillMaxWidth()) {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .clip(RoundedCornerShape(8.dp))
+              .background(AceIndigoDark.copy(alpha = 0.35f))
+              .border(1.dp, AceIndigoLight.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+              .clickable { showAuthorDropdown = true }
+              .padding(horizontal = 10.dp, vertical = 6.dp)
+              .testTag("author_workspace_dropdown_trigger"),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+          ) {
+            Row(
+              modifier = Modifier.weight(1f),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Icon(
+                imageVector = Icons.Default.Security,
+                contentDescription = null,
+                tint = AceIndigoLight,
+                modifier = Modifier.size(14.dp)
               )
+              Spacer(modifier = Modifier.width(6.dp))
+              Column {
+                Text(
+                  text = "WORKSPACE: ${currentWs?.storeName ?: "Richard Anderson"}",
+                  color = AceIndigoLight,
+                  fontSize = 11.sp,
+                  fontWeight = FontWeight.Bold,
+                  maxLines = 1
+                )
+                Text(
+                  text = "${currentWs?.handle ?: "@richard_anderson"} • ${currentWs?.payoutEmail ?: "payout"}",
+                  color = AceTextSecondary,
+                  fontSize = 9.sp,
+                  maxLines = 1
+                )
+              }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
               Text(
-                text = "${currentWs?.handle ?: "@richard_anderson"} • ${currentWs?.payoutEmail ?: "payout"}",
-                color = AceTextSecondary,
-                fontSize = 10.sp
+                text = "Switch",
+                color = AceGold,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium
+              )
+              Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = "Switch Author",
+                tint = AceGold,
+                modifier = Modifier.size(16.dp)
               )
             }
-          }
-
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-              text = "Switch Author",
-              color = AceGold,
-              fontSize = 11.sp,
-              fontWeight = FontWeight.Medium
-            )
-            Icon(
-              imageVector = Icons.Default.ArrowDropDown,
-              contentDescription = "Switch Author",
-              tint = AceGold,
-              modifier = Modifier.size(18.dp)
-            )
           }
 
           DropdownMenu(
