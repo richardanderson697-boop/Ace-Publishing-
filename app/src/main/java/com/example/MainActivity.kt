@@ -165,7 +165,7 @@ class MainActivity : ComponentActivity() {
                 onPublishWriteSound = { projId, title, price, desc, relDate, format, status ->
                   aceViewModel.publishProjectFromWriteSound(projId, title, price, desc, relDate, format, status)
                 },
-                onPublishStandaloneZip = { zipUri, coverUri, title, price, desc, relDate, format, status, zipName ->
+                onPublishStandaloneZip = { zipUri, coverUri, title, price, desc, relDate, format, status, zipName, chapterCount ->
                   aceViewModel.processAndPublishStandaloneZip(
                     context = context,
                     zipUri = zipUri,
@@ -176,7 +176,8 @@ class MainActivity : ComponentActivity() {
                     releaseDate = relDate,
                     format = format,
                     publicationStatus = status,
-                    zipFileName = zipName
+                    zipFileName = zipName,
+                    customChapterCount = chapterCount
                   )
                 }
               )
@@ -221,7 +222,9 @@ class MainActivity : ComponentActivity() {
                     title = prod.title,
                     authorName = prod.authorName,
                     coverRes = prod.coverDrawableRes,
-                    durationSeconds = prod.audioDurationMinutes * 60
+                    durationSeconds = prod.audioDurationMinutes * 60,
+                    audioFilePath = prod.localAudioPath,
+                    localCoverUri = prod.localCoverUri
                   )
                 },
                 onInstantBuy = {

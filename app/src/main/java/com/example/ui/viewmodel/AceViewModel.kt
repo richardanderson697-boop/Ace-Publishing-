@@ -290,13 +290,14 @@ class AceViewModel(
     releaseDate: String,
     format: ProductFormat,
     publicationStatus: PublicationStatus,
-    zipFileName: String
+    zipFileName: String,
+    customChapterCount: Int? = null
   ) {
     viewModelScope.launch {
       _uiState.update {
         it.copy(
           isZipProcessingInProgress = true,
-          zipProcessingLogs = listOf("Initiating standalone ZIP & photo intake pipeline..."),
+          zipProcessingLogs = listOf("Initiating standalone audio & photo intake pipeline..."),
           lastZipReport = null
         )
       }
@@ -310,7 +311,8 @@ class AceViewModel(
         coverUri = coverUri,
         bookTitle = title,
         authorName = author,
-        customZipName = zipFileName
+        customZipName = zipFileName,
+        customChapterCount = customChapterCount
       )
 
       if (report.success) {
@@ -326,7 +328,8 @@ class AceViewModel(
           segmentCount = report.totalSegmentsFound,
           durationMinutes = report.totalEstimatedDurationMinutes,
           localAudioPath = report.extractedAudioPath,
-          localCoverUri = report.embeddedCoverPath
+          localCoverUri = report.embeddedCoverPath,
+          chapterCount = customChapterCount ?: report.detectedChapterCount
         )
 
         _uiState.update {
@@ -335,7 +338,7 @@ class AceViewModel(
             zipProcessingLogs = report.stepLogs,
             lastZipReport = report,
             showImportFromWriteSound = false,
-            snackbarMessage = "Successfully created draft for '${createdProduct.title}' (75% net creator rate)"
+            snackbarMessage = "Successfully created ${if (publicationStatus == PublicationStatus.PRIVATE_DRAFT) "private draft" else "live release"} for '${createdProduct.title}'"
           )
         }
       } else {

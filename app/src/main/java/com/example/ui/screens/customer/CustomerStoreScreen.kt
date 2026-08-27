@@ -208,7 +208,9 @@ fun CustomerStoreScreen(
             title = product.title,
             authorName = product.authorName,
             coverRes = product.coverDrawableRes,
-            durationSeconds = product.audioDurationMinutes * 60
+            durationSeconds = product.audioDurationMinutes * 60,
+            audioFilePath = product.localAudioPath,
+            localCoverUri = product.localCoverUri
           )
         }
       )

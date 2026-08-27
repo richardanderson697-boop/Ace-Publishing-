@@ -3,9 +3,11 @@ package com.example.ui.screens.author
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -86,16 +88,18 @@ fun AuthorBooksTab(
       }
     }
 
-    // Filter Chips
+    // Filter Tabs
     item {
       Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+          .fillMaxWidth()
+          .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
       ) {
         FilterChip(
           selected = filterSelected == 0,
           onClick = { filterSelected = 0 },
-          label = { Text("All Material (${allBooks.size})", fontSize = 11.sp) },
+          label = { Text("All Material (${allBooks.size})", fontSize = 11.sp, fontWeight = if (filterSelected == 0) FontWeight.Bold else FontWeight.Normal) },
           colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = AceIndigo,
             selectedLabelColor = AceTextPrimary,
@@ -107,7 +111,7 @@ fun AuthorBooksTab(
         FilterChip(
           selected = filterSelected == 1,
           onClick = { filterSelected = 1 },
-          label = { Text("Live Marketplace ($liveCount)", fontSize = 11.sp) },
+          label = { Text("Live Marketplace ($liveCount)", fontSize = 11.sp, fontWeight = if (filterSelected == 1) FontWeight.Bold else FontWeight.Normal) },
           colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = AceEmerald,
             selectedLabelColor = AceObsidian,
@@ -119,7 +123,7 @@ fun AuthorBooksTab(
         FilterChip(
           selected = filterSelected == 2,
           onClick = { filterSelected = 2 },
-          label = { Text("Private Drafts ($draftCount)", fontSize = 11.sp) },
+          label = { Text("Private Drafts ($draftCount)", fontSize = 11.sp, fontWeight = if (filterSelected == 2) FontWeight.Bold else FontWeight.Normal) },
           colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = AceGold,
             selectedLabelColor = AceObsidian,

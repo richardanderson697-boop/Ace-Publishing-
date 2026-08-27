@@ -682,6 +682,7 @@ class AceRepository {
     durationMinutes: Int,
     localAudioPath: String?,
     localCoverUri: String?,
+    chapterCount: Int = 1,
     coverDrawableRes: Int = R.drawable.cover_machine2_1787574231599
   ): BookProduct {
     val author = _workspaces.value[authorId]
@@ -692,12 +693,12 @@ class AceRepository {
       authorId = authorId,
       authorName = authorName,
       title = title.ifBlank { "Standalone Master Release" },
-      subtitle = "Standalone ZIP Intake (75% Creator Net)",
-      description = description.ifBlank { "Mastered audiobook with embedded jacket cover and stitched voice segments." },
+      subtitle = if (segmentCount <= 1) "Direct Audio Master (75% Creator Net)" else "Standalone ZIP Intake (75% Creator Net)",
+      description = description.ifBlank { "Mastered audiobook with embedded jacket cover and audio segments." },
       price = price,
       coverDrawableRes = coverDrawableRes,
       format = format,
-      chapterCount = if (segmentCount > 0) (segmentCount / 4).coerceAtLeast(1) else 8,
+      chapterCount = chapterCount.coerceAtLeast(1),
       audioDurationMinutes = durationMinutes,
       rating = 5.0,
       reviewCount = 0,

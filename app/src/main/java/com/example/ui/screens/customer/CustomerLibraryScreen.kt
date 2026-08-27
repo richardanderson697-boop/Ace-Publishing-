@@ -105,7 +105,9 @@ fun CustomerLibraryScreen(
               title = item.product.title,
               authorName = item.product.authorName,
               coverRes = item.product.coverDrawableRes,
-              durationSeconds = item.totalDurationSec
+              durationSeconds = item.totalDurationSec,
+              audioFilePath = item.product.localAudioPath,
+              localCoverUri = item.product.localCoverUri
             )
           }
         )
@@ -135,15 +137,27 @@ private fun LibraryBookCard(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top
       ) {
-        Image(
-          painter = painterResource(id = item.product.coverDrawableRes),
-          contentDescription = item.product.title,
-          contentScale = ContentScale.Crop,
-          modifier = Modifier
-            .width(80.dp)
-            .height(112.dp)
-            .clip(RoundedCornerShape(10.dp))
-        )
+        if (item.product.localCoverUri != null) {
+          coil.compose.AsyncImage(
+            model = item.product.localCoverUri,
+            contentDescription = item.product.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+              .width(80.dp)
+              .height(112.dp)
+              .clip(RoundedCornerShape(10.dp))
+          )
+        } else {
+          Image(
+            painter = painterResource(id = item.product.coverDrawableRes),
+            contentDescription = item.product.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+              .width(80.dp)
+              .height(112.dp)
+              .clip(RoundedCornerShape(10.dp))
+          )
+        }
 
         Spacer(modifier = Modifier.width(14.dp))
 

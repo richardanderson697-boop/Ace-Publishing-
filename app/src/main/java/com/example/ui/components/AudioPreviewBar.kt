@@ -65,15 +65,26 @@ fun AudioPreviewBar(
           verticalAlignment = Alignment.CenterVertically,
           modifier = Modifier.fillMaxWidth()
         ) {
-          // Cover thumbnail
-          Image(
-            painter = painterResource(id = sample.coverRes),
-            contentDescription = "Audio Cover",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-              .size(44.dp)
-              .clip(RoundedCornerShape(8.dp))
-          )
+          // Cover thumbnail (User custom or default drawable)
+          if (sample.localCoverUri != null) {
+            coil.compose.AsyncImage(
+              model = sample.localCoverUri,
+              contentDescription = "Audio Cover",
+              contentScale = ContentScale.Crop,
+              modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(8.dp))
+            )
+          } else {
+            Image(
+              painter = painterResource(id = sample.coverRes),
+              contentDescription = "Audio Cover",
+              contentScale = ContentScale.Crop,
+              modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(8.dp))
+            )
+          }
 
           Spacer(modifier = Modifier.width(12.dp))
 
@@ -85,13 +96,13 @@ fun AudioPreviewBar(
               Icon(
                 imageVector = Icons.Default.Headphones,
                 contentDescription = null,
-                tint = AceGold,
+                tint = if (sample.audioFilePath != null) AceEmerald else AceGold,
                 modifier = Modifier.size(14.dp)
               )
               Spacer(modifier = Modifier.width(4.dp))
               Text(
-                text = "AUDIO PREVIEW",
-                color = AceGold,
+                text = if (sample.audioFilePath != null) "MASTER AUDIO STREAM" else "AUDIO PREVIEW",
+                color = if (sample.audioFilePath != null) AceEmerald else AceGold,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp
